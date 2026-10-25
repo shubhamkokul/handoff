@@ -245,6 +245,20 @@ async function main() {
   check("new owner's SDK has the retry, not the stale result", vmB2.session.sheet.getState().shippingAddress?.city === "Austin");
   check("VM presence stayed on through the takeover", devB.vmOnline);
 
+  // ---------------------------------------------------------------- cancel
+  console.log("\n# User cancels on the device");
+  const c = await createSession();
+  const vmC = await openVm(c.sid);
+  const devC = await openDevice(c.code);
+  r = await devC.client.request({ action: "cancel", payload: null });
+  await devC.stateWhere((p) => p.status === "cancelled");
+  await vmC.eventWhere((e) => e.kind === "result_sent");
+  check("cancel resolves and the device sees the paysheet closed", r.status === "resolved", r);
+  check("VM's SDK is cancelled", vmC.session.sheet.getState().status === "cancelled");
+  check("cancel sends no callback_pending (no merchant callback)", !vmC.events.some((e) => e.kind === "pending_sent"));
+  const metaC = await until<string>((cb) => onValue(ref(vmC.db, `sessions/${c.sid}/meta/status`), (s) => cb(s.val())), (v) => v === "cancelled");
+  check("session meta marked cancelled", metaC === "cancelled");
+
   // ---------------------------------------------------------------- concurrency
   console.log("\n# Concurrent transactions");
   const N = 8;

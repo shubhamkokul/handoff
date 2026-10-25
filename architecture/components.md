@@ -113,9 +113,11 @@ flight or the VM is offline.
 
 ## What "the VM" means here
 
-In production, the VM side is whatever runs the real checkout page: a
-Playwright-driven browser, for example. The pieces that would move there are
-`vm-session.ts`, `vm-bridge.ts`, and `channel.ts`. The mock SDK would be
+In production, the VM side is the agent's browser running the real checkout
+page, for example a Playwright-driven Chromium. When the agent falls back, it
+creates a session, starts the Handoff bridge next to the SDK, and sends the
+user the fallback URL (see [End-to-end flow](flow.md)). The pieces that would
+move there are `vm-session.ts`, `vm-bridge.ts`, and `channel.ts`. The mock SDK would be
 replaced by an adapter that turns device actions into interactions with the
 real paysheet (filling the address form, picking an option, clicking Pay) and
 reports when the SDK's callbacks resolve. The protocol and the device side

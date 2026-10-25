@@ -43,12 +43,13 @@ fails the run instead of hanging it.
 | VM view | relay steps arrive in order (action in → `callback_pending` out → callback fired → finished → `callback_result` out); the card is correct; the VM view renders the relay steps and no paysheet controls |
 | Rules | device can't write state; sessions can't read each other; nobody can list `/shareCodes`, `/sessionIndex`, or `/sessions` |
 | Resume | device sees the VM go offline and come back; SDK state survives; `seq` continues; the order completes |
+| Cancel | the cancel resolves; the VM's SDK and the session end `cancelled`; no merchant callback runs |
 | Takeover | the old tab stands down; the in-flight request fails fast with `INTERRUPTED`; the old tab's late result never reaches the device; presence stays on |
 | Concurrency | 8 transactions in parallel; each device ends on its own merchant's order; each VM approved exactly its own order |
 | Console | lists every session with the right status and presence; the operator token can't write or read share codes |
 | Queues | drained after the run |
 
-The same 43 checks pass against the emulators and against the live database.
+The same 46 checks pass against the emulators, the live database, and the deployed site at handoff.solutionbyhour.com.
 Measured on the live database from a US home connection, a device action makes
 the full round trip (device → RTDB → VM → merchant → RTDB → device) in about
 300 ms with eight sessions running at once.

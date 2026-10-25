@@ -2,8 +2,10 @@
 
 Live at **https://handoff.solutionbyhour.com**
 
-Hand a headless checkout to a real person. An agent's checkout paysheet runs in
-a VM the user can't reach; Handoff mirrors it onto the user's own device.
+The fallback for agentic checkout. An AI agent checks out in a headless VM;
+when it can't finish (it needs the user's address, a choice, or their
+approval), it sends the user a **fallback URL**. The user completes the
+paysheet on their own device while the checkout SDK keeps running in the VM.
 The SDK (and its callbacks) stay in the VM; the device sends semantic actions,
 the VM fires the real callbacks, and results + state stream back.
 
@@ -11,9 +13,10 @@ the VM fires the real callbacks, and results + state stream back.
 Device UI (/pay/[code])  ⇄  Firebase RTDB sessions/{sid}  ⇄  VM paysheet + SDK (/vm)
 ```
 
-**How it works:** see [`architecture/`](architecture/README.md): components,
-protocol, data model and security, session lifecycle, deployment, and testing,
-with diagrams.
+**How it works:** see [`architecture/`](architecture/README.md), starting with
+the [end-to-end flow](architecture/flow.md) (sequence diagrams from the
+agent's fallback to the agent resuming), then components, protocol, data
+model and security, session lifecycle, deployment, and testing.
 
 ## Run
 

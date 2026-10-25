@@ -39,7 +39,7 @@ claims become `auth.token` in the security rules.
 | Token | uid | Claims | Minted by | For |
 |---|---|---|---|---|
 | VM | `vm:{sid}` | `{ sid, role: "vm" }` | `POST /api/sessions/{sid}/vm-token` | the VM page |
-| Device | `device:{sid}` | `{ sid, role: "device" }` | `POST /api/sessions/redeem` | the device page |
+| Device | `device:{sid}` | `{ sid, role: "device" }` | `POST /api/sessions/redeem` | the device page (opened from the fallback URL) |
 | Operator | `operator` | `{ role: "operator" }` | `POST /api/operator-token` | the console |
 
 Each Firebase client app uses in-memory auth persistence, so a VM tab and a
@@ -73,20 +73,22 @@ On top of that:
 The end-to-end suite checks these rules against the live database (see
 [Testing](testing.md)).
 
-## Share links
+## Fallback URLs
+
+The fallback URL the agent sends the user is the device link, `/pay/{code}`.
 
 ```mermaid
 sequenceDiagram
-    participant VM as VM (or its orchestrator)
+    participant VM as Agent in the VM
     participant API as Handoff server
     participant R as RTDB
     actor U as User
     participant D as Device page
 
-    VM->>API: POST /api/sessions
+    VM->>API: POST /api/sessions (fallback)
     API->>R: sessions/{sid}/meta, state<br/>shareCodes/{code}, sessionIndex/{sid}
     API-->>VM: { sid, shareUrl: /pay/{code} }
-    VM-->>U: share the link (agent chat, SMS, QR…)
+    VM-->>U: fallback URL (agent chat, SMS, push…)
     U->>D: open /pay/{code}
     D->>API: POST /api/sessions/redeem { code }
     API->>R: read shareCodes/{code}, check expiry

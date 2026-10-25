@@ -20,14 +20,15 @@ rules stop session tokens from reading the session past that point.
 
 ## Creating a session
 
-`POST /api/sessions` writes everything a session needs in one multi-path
-update:
+The agent calls `POST /api/sessions` when it falls back (in the demo, the
+console's **Launch VM paysheet** does it). One multi-path update writes
+everything a session needs:
 
 1. Picks a cart (one of five demo merchants) and a label such as
    `#1042 · Bean There Coffee`.
 2. Writes `meta` (`waiting`), and the SDK's **initial state** as snapshot
    `seq: 0`.
-3. Creates the share code and the index entry.
+3. Creates the share code behind the fallback URL, and the index entry.
 
 Because the initial state is stored up front, opening a brand-new session and
 resuming an old one are the same code path: the VM always starts by reading

@@ -1,10 +1,16 @@
 # Handoff architecture
 
-Handoff lets a real person complete a checkout that is running somewhere they
-can't reach: an agent's browser in a VM, on infrastructure the user has no
-access to. The checkout SDK keeps running in the VM. The user gets a link,
-sees the same paysheet on their own device, and every tap fires the SDK's real
-merchant callbacks in the VM. Results stream back to the device.
+An AI agent is checking out on a user's behalf, in a browser inside a VM. The
+merchant's checkout SDK renders a paysheet there, and the agent fills in what
+it can. Sometimes it can't finish: it doesn't know the shipping address, the
+buyer has to pick a shipping option, or the buyer has to approve the payment
+themselves.
+
+Handoff is the agent's **fallback**. The agent asks for a **fallback URL** and
+sends it to the user. The user opens it on their own device and sees the same
+paysheet. Every tap fires the SDK's real merchant callbacks back in the VM,
+results stream back to the device, and when the payment is approved the agent
+picks up where it left off.
 
 ## The problem
 
@@ -16,52 +22,60 @@ rendered the paysheet:
 - `onShippingOptionsChange`: the merchant re-prices the order.
 - `onApprove`: the merchant captures the order.
 
-In an agentic flow, that page lives in a headless VM. The user can't click
-anything there, but the callbacks still have to fire there, because that is
-where the SDK and the merchant integration live. Mirroring pixels doesn't
-solve this; the callbacks need a request/response path from the user's device
-into the VM and back.
+In an agentic checkout, that page lives in a headless VM the user can't reach.
+When the agent needs the user, the callbacks still have to fire in the VM,
+because that is where the SDK, the merchant integration, and the agent's
+session live. Restarting the checkout on the user's device would lose the
+agent's work and the merchant's session; mirroring pixels would make the user
+drive a remote browser. Instead, the user gets a native paysheet on their
+device, and their actions travel to the VM as requests that the SDK answers.
 
-## The approach
+## How it fits together
 
 ```mermaid
 flowchart LR
-    subgraph Device["User's device (browser)"]
-        DUI["Device paysheet<br/>/pay/[code]"]
-        DC["DeviceClient<br/>request/response"]
+    subgraph VM["Headless VM"]
+        direction TB
+        AG["AI agent<br/>driving the checkout"]
+        SDK["Checkout SDK<br/>paysheet + merchant callbacks"]
+        BR["Handoff bridge"]
+        AG -- "drives" --> SDK
+        SDK <--> BR
     end
 
-    subgraph Firebase["Firebase Realtime Database"]
-        Q1[("toVm queue")]
-        Q2[("toDevice queue")]
-        ST[("state snapshot")]
-        PR[("presence")]
+    subgraph FB["Firebase RTDB"]
+        Q[("queues · snapshot<br/>presence")]
     end
 
-    subgraph VM["Headless VM (no user interaction)"]
-        BR["VM bridge"]
-        SDK["Checkout SDK<br/>(mock, PayPal-shaped)"]
-        M["Merchant callbacks"]
-        VUI["Relay steps view<br/>(no paysheet shown)"]
+    subgraph DEV["User's device"]
+        PS["Device paysheet<br/>/pay/{code}"]
     end
 
-    API["Handoff server (Next.js)<br/>sessions, share links, tokens"]
+    API["Handoff server<br/>sessions · fallback URLs · tokens"]
+    U(("User"))
 
-    DUI --> DC
-    DC -- "action" --> Q1
-    Q1 --> BR
-    BR -- "drive SDK" --> SDK
-    SDK -- "fires" --> M
-    M -- "resolve / reject" --> SDK
-    BR -- "callback_pending / callback_result" --> Q2
-    SDK -. "every state change" .-> BR
-    BR -- "full snapshot" --> ST
-    Q2 --> DC
-    ST --> DUI
-    BR --> VUI
-    API -. "custom tokens" .-> Device
-    API -. "custom tokens" .-> VM
+    AG -- "1 · stuck: request fallback" --> API
+    API -- "2 · fallback URL" --> AG
+    AG -- "3 · send link" --> U
+    U -- "4 · open" --> PS
+    PS -. "redeem code" .-> API
+    PS <-- "5 · actions / results" --> Q
+    Q <-- "6 · actions / results" --> BR
+    SDK -- "7 · onApprove: resume" --> AG
 ```
+
+1. The agent hits a step it can't complete and asks the Handoff server for a
+   fallback session.
+2. The server returns a fallback URL (`/pay/{code}`), and the agent starts the
+   Handoff bridge next to the SDK.
+3. The agent sends the link to the user, wherever it already talks to them
+   (chat, SMS, push).
+4. The user opens it; the device exchanges the code for a session token.
+5. The device sends the user's actions and renders the VM's snapshots.
+6. The bridge turns each action into an SDK interaction, which fires the
+   merchant callback, and sends the result and a fresh snapshot back.
+7. When the SDK's `onApprove` resolves in the VM, the agent knows the checkout
+   is done and carries on.
 
 Three rules hold the design together:
 
@@ -76,12 +90,26 @@ Three rules hold the design together:
 
 | Document | What it covers |
 |---|---|
+| [End-to-end flow](flow.md) | **Start here.** The full sequence from the agent's fallback to the agent resuming, plus the failure paths |
 | [Components](components.md) | Every moving part, where it runs, and which file implements it |
 | [Protocol](protocol.md) | Messages, the callback round trip, snapshots, deadlines, failure cases |
-| [Data model and security](data-model.md) | The RTDB tree, security rules, tokens, share links |
+| [Data model and security](data-model.md) | The RTDB tree, security rules, tokens, fallback URLs |
 | [Session lifecycle](sessions.md) | Creating, joining, resuming, and taking over a session |
 | [Deployment](deployment.md) | VPS, Docker, Traefik, Cloudflare DNS, Firebase, secrets, free tier |
 | [Testing](testing.md) | The event-driven end-to-end suite and what it proves |
+
+## The demo vs. production
+
+The live demo simulates the VM side in a browser tab so it can be shown
+without an agent:
+
+| In production | In the demo |
+|---|---|
+| The agent triggers the fallback when it gets stuck | **Launch VM paysheet** in the console |
+| A real checkout SDK in the agent's browser | A mock SDK with PayPal-shaped callbacks |
+| The merchant's own callback logic | `merchant.ts`, plus a "Hold responses" switch |
+| The agent sends the fallback URL to the user | Copy the link, or "Open as device" |
+| The agent resumes when `onApprove` resolves | The VM page's relay steps show the result |
 
 ## Why Firebase Realtime Database
 
