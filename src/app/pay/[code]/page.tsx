@@ -64,6 +64,7 @@ export default function DevicePage({ params }: { params: Promise<{ code: string 
   async function send(action: DeviceAction) {
     if (!clientRef.current) return;
     setInFlight(true);
+    setError(null);
     try {
       const outcome = await clientRef.current.request(action);
       if (outcome.status === "rejected" && outcome.reason.startsWith("RELAY")) {
@@ -75,20 +76,16 @@ export default function DevicePage({ params }: { params: Promise<{ code: string 
   }
 
   return (
-    <main className="page device">
-      <div className="page-head">
-        <span className="tag device">Your device</span>
-      </div>
-
-      {!vmOnline && state?.status === "open" && (
-        <div className="warn">Checkout is reconnecting…</div>
-      )}
-      {error && <div className="error">{error}</div>}
-
+    <main className="ps-page">
       {state ? (
         <PaySheetView
           state={state}
           disabled={inFlight || !vmOnline}
+          notice={
+            !vmOnline && state.status === "open"
+              ? "Reconnecting to checkout…"
+              : error
+          }
           handlers={{
             onSetAddress: (a) => send({ action: "set_shipping_address", payload: a }),
             onSelectOption: (optionId) => send({ action: "select_shipping_option", payload: { optionId } }),
@@ -97,13 +94,17 @@ export default function DevicePage({ params }: { params: Promise<{ code: string 
           }}
         />
       ) : (
-        !error && <p className="muted">Connecting to checkout…</p>
+        <div className="ps-card ps-loading">
+          {error ? <p className="ps-alert">{error}</p> : <><span className="ps-spinner" /><p>Connecting to checkout…</p></>}
+        </div>
       )}
 
-      <button className="ghost small log-toggle" onClick={() => setShowLog((v) => !v)}>
-        {showLog ? "Hide" : "Show"} relay log
-      </button>
-      {showLog && <EventLog entries={entries} />}
+      <div className="ps-devtools">
+        <button className="ps-link small" onClick={() => setShowLog((v) => !v)}>
+          {showLog ? "Hide" : "Show"} relay log
+        </button>
+        {showLog && <EventLog entries={entries} />}
+      </div>
     </main>
   );
 }

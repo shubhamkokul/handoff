@@ -13,6 +13,7 @@ export type LogFn = (dir: "in" | "out" | "info", text: string) => void;
 // activity view. `id` is the device's request id.
 export type VmEvent =
   | { kind: "received"; id: string; ts: number; action: ToVmMessage["action"]; payload: unknown }
+  | { kind: "pending_sent"; id: string; ts: number; callback: CallbackName }
   | { kind: "callback_triggered"; id: string; ts: number; callback: CallbackName }
   | {
       kind: "callback_finished";
@@ -63,9 +64,10 @@ export function bridgeVm(
     }
 
     const callback = CALLBACK_FOR[msg.action];
-    onEvent({ kind: "callback_triggered", id: msg.id, ts: Date.now(), callback });
     await channel.send({ type: "callback_pending", ref: msg.id, callback, ts: Date.now() });
+    onEvent({ kind: "pending_sent", id: msg.id, ts: Date.now(), callback });
     log("out", `callback_pending ${callback} [${msg.id}]`);
+    onEvent({ kind: "callback_triggered", id: msg.id, ts: Date.now(), callback });
 
     let outcome: CallbackOutcome;
     switch (msg.action) {

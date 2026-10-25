@@ -6,18 +6,21 @@ import { connectAs } from "@/lib/firebase-client";
 import { startVmSession } from "@/lib/vm-session";
 import { ResponseGate } from "@/lib/response-gate";
 import type { CallbackName, PaySheetState } from "@/lib/protocol";
-import { EventLog, useLog } from "@/components/PaySheetView";
-import { PaySheetMirror } from "@/components/PaySheetMirror";
 import { VmActivity, reduceActivity, type ActivityCard } from "@/components/VmActivity";
 
-// Simulates the headless VM for one session. Nobody can interact with the
-// paysheet here: it only waits for the device, triggers the merchant
-// callbacks, and reports the results back. Reopening a session resumes it.
+const STATUS_LABEL: Record<PaySheetState["status"], string> = {
+  open: "checkout open",
+  approved: "paid",
+  cancelled: "cancelled",
+};
+
+// Simulates the headless VM for one session. The paysheet itself isn't shown:
+// nobody looks at it in a real VM. What matters is the relay, so this page
+// shows each message in and out, and the merchant callback it triggered.
 export default function VmPage({ params }: { params: Promise<{ sid: string }> }) {
   const { sid } = use(params);
-  const [entries, log] = useLog();
   const [cards, setCards] = useState<ActivityCard[]>([]);
-  const [state, setState] = useState<PaySheetState | null>(null);
+  const [status, setStatus] = useState<PaySheetState["status"] | null>(null);
   const [label, setLabel] = useState<string>("");
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [deviceOnline, setDeviceOnline] = useState(false);
@@ -47,14 +50,11 @@ export default function VmPage({ params }: { params: Promise<{ sid: string }> })
       const session = await startVmSession({
         db,
         sid,
-        log,
+        log: () => {},
         beforeMerchantResponds: gateRef.current.wait,
-        onState: setState,
+        onState: (s) => setStatus(s.status),
         onEvent: (e) => setCards((prev) => reduceActivity(prev, e)),
-        onDevicePresence: (online) => {
-          setDeviceOnline(online);
-          log("info", online ? "device connected" : "device disconnected");
-        },
+        onDevicePresence: setDeviceOnline,
         onTakenOver: () => setStandby(true),
       });
 
@@ -67,7 +67,6 @@ export default function VmPage({ params }: { params: Promise<{ sid: string }> })
       };
     })().catch((e) => setError(String(e?.message ?? e)));
     return () => cleanup();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sid]);
 
   return (
@@ -76,12 +75,15 @@ export default function VmPage({ params }: { params: Promise<{ sid: string }> })
         <Link href="/" className="small">← All sessions</Link>
         <div className="title-row">
           <span className="tag vm">VM</span>
-          <h1>{label || "Headless paysheet"}</h1>
+          <h1>{label || "Headless checkout"}</h1>
+        </div>
+        <div className="vm-status">
           <span className={`presence ${deviceOnline ? "on" : ""}`}>{deviceOnline ? "device connected" : "waiting for device"}</span>
+          {status && <span className={`status ${status === "approved" ? "complete" : status === "cancelled" ? "cancelled" : "active"}`}>{STATUS_LABEL[status]}</span>}
         </div>
         <p className="muted">
-          The checkout SDK runs here, on infra the user can&apos;t reach. Nothing on this paysheet is clickable. It
-          waits for the user&apos;s device, triggers the merchant callbacks, and sends the results back.
+          The checkout SDK runs here, on infra the user can&apos;t reach, and nobody interacts with it. Below is every
+          message relayed between this VM and the user&apos;s device, and the merchant callback each one triggered.
         </p>
       </div>
 
@@ -97,21 +99,14 @@ export default function VmPage({ params }: { params: Promise<{ sid: string }> })
         <div className="col">
           <div className="panel">
             <div className="panel-head">
-              <h2>Activity</h2>
+              <h2>Relay steps</h2>
               <span className="muted small">newest first</span>
             </div>
             <VmActivity cards={cards} heldCallbacks={gate.pending} />
           </div>
-
-          <details className="panel raw">
-            <summary>Raw relay messages</summary>
-            <EventLog entries={entries} />
-          </details>
         </div>
 
         <div className="col">
-          {state && <PaySheetMirror state={state} />}
-
           <div className="panel">
             <h2>Device link</h2>
             {shareUrl ? (
@@ -151,9 +146,7 @@ export default function VmPage({ params }: { params: Promise<{ sid: string }> })
                 Hold responses
               </label>
             </div>
-            <p className="muted small">
-              Stands in for the merchant&apos;s backend, not the paysheet.
-            </p>
+            <p className="muted small">Stands in for the merchant&apos;s backend, not the paysheet.</p>
             {gate.holding ? (
               gate.pending.length > 0 ? (
                 <div className="held">

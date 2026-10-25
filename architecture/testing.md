@@ -40,7 +40,7 @@ fails the run instead of hanging it.
 |---|---|
 | API | distinct sessions and links; unknown codes and sessions rejected |
 | One transaction | address → options and tax; merchant rejection leaves state unchanged; callback deadline → `CALLBACK_TIMEOUT` |
-| VM view | steps arrive in order (received → triggered → finished → sent); the activity card is correct; the VM paysheet renders with no interactive elements |
+| VM view | relay steps arrive in order (action in → `callback_pending` out → callback fired → finished → `callback_result` out); the card is correct; the VM view renders the relay steps and no paysheet controls |
 | Rules | device can't write state; sessions can't read each other; nobody can list `/shareCodes`, `/sessionIndex`, or `/sessions` |
 | Resume | device sees the VM go offline and come back; SDK state survives; `seq` continues; the order completes |
 | Takeover | the old tab stands down; the in-flight request fails fast with `INTERRUPTED`; the old tab's late result never reaches the device; presence stays on |

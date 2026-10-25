@@ -42,7 +42,7 @@ flowchart LR
         BR["VM bridge"]
         SDK["Checkout SDK<br/>(mock, PayPal-shaped)"]
         M["Merchant callbacks"]
-        VUI["Read-only paysheet<br/>+ activity timeline"]
+        VUI["Relay steps view<br/>(no paysheet shown)"]
     end
 
     API["Handoff server (Next.js)<br/>sessions, share links, tokens"]

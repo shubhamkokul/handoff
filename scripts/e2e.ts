@@ -14,8 +14,7 @@ import { ResponseGate } from "../src/lib/response-gate";
 import { watchSessions } from "../src/lib/console-feed";
 import type { PaySheet } from "../src/lib/mock-paysheet-sdk";
 import type { VmEvent } from "../src/lib/vm-bridge";
-import { reduceActivity, type ActivityCard } from "../src/components/VmActivity";
-import { PaySheetMirror } from "../src/components/PaySheetMirror";
+import { reduceActivity, VmActivity, type ActivityCard } from "../src/components/VmActivity";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
@@ -176,11 +175,13 @@ async function main() {
   // "Sent" is the VM's write being acknowledged; the device may already have the result by then.
   await vmA.eventWhere((e) => e.kind === "result_sent");
   const kinds = vmA.events.map((e) => e.kind);
-  check("VM steps in order: received → callback triggered → finished → sent", kinds.join(",") === "received,callback_triggered,callback_finished,result_sent", kinds);
+  check("VM relay steps in order: action in → pending out → callback fired → finished → result out",
+    kinds.join(",") === "received,pending_sent,callback_triggered,callback_finished,result_sent", kinds);
   const card = vmA.events.reduce<ActivityCard[]>(reduceActivity, [])[0];
   check("VM activity card shows the callback and its result", card.callback === "onShippingAddressChange" && card.finished?.status === "resolved" && card.sentAt !== null && card.finished.state.shippingOptions.length === 3);
-  const html = renderToStaticMarkup(createElement(PaySheetMirror, { state: vmA.session.sheet.getState() }));
-  check("VM paysheet has no interactive elements", !/<(button|input|form|select|textarea|a)\b/.test(html) && html.includes("Market St"));
+  const html = renderToStaticMarkup(createElement(VmActivity, { cards: [card], heldCallbacks: [] }));
+  check("VM view shows relay steps, no paysheet controls",
+    !/<(button|input|form|select|textarea|a)\b/.test(html) && ["callback_pending", "callback_result", "onShippingAddressChange", "Device → VM", "VM → Device"].every((t) => html.includes(t)));
 
   r = await devA.client.request({ action: "set_shipping_address", payload: { ...SF, countryCode: "CA", state: "ON", postalCode: "M5H2N2" } });
   check("foreign address rejected with COUNTRY_ERROR", r.status === "rejected" && r.reason === "COUNTRY_ERROR", r);

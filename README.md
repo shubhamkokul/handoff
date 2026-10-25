@@ -29,13 +29,14 @@ live; reopen any session's VM to resume it, or hand its device link to someone
 else to run transactions in parallel. To use a real phone, open the console via
 your LAN IP so the links point there.
 
-The VM page is display-only, like a real headless VM: nothing on its paysheet is
-clickable. It waits for the device, and its **Activity** timeline shows each
-request: received from device → merchant callback triggered → resolved or
-rejected (with what changed) → result sent to device. The **Merchant simulator**
-panel stands in for the merchant's backend: **Hold responses** makes callbacks
-wait for you, so you can watch the device wait. Hold one past 10 s and the SDK
-times it out. Try SF (3 options + CA tax), Honolulu (express only), and Toronto
+The device link opens the paysheet the user interacts with, laid out like a
+familiar wallet checkout. The VM page shows no paysheet at all, like a real
+headless VM: it shows the **relay steps** for each request (action in from the
+device → `callback_pending` out → merchant callback fired in the VM → resolved
+or rejected → `callback_result` out), each with its timing. The **Merchant
+simulator** panel stands in for the merchant's backend: **Hold responses**
+makes callbacks wait for you, so you can watch the device wait. Hold one past
+10 s and the SDK times it out. Try SF (3 options + CA tax), Honolulu (express only), and Toronto
 or ZIP 00000 (merchant rejects).
 
 Resume and ownership: the VM rebuilds the SDK from the last persisted snapshot.
@@ -59,8 +60,8 @@ stands down, and any callback it had in flight fails on the device with
 | `src/app/api/sessions/redeem` | Exchanges the share code for a device-role token. |
 | `src/lib/vm-session.ts` | Boots or resumes the SDK for one session: rehydrate, take the VM lease, bridge. |
 | `src/lib/response-gate.ts` | Lets you hold merchant responses by hand (replaces simulated latency). |
-| `src/components/VmActivity.tsx` | VM activity timeline, built from the bridge's `VmEvent`s. |
-| `src/components/PaySheetMirror.tsx` | The VM's read-only paysheet. |
+| `src/components/VmActivity.tsx` | VM relay-steps view, built from the bridge's `VmEvent`s. |
+| `src/components/PaySheetView.tsx` | The device paysheet (wallet-checkout layout). |
 | `src/lib/console-feed.ts` | Live session list for the console (operator token, read-only). |
 | `deploy/` | Dockerfile, compose files, and `deploy.sh` for the VPS. |
 | `database.rules.json` | Per-session, per-role access. Device can't write state; nobody reads share codes; the operator token is read-only. |

@@ -50,12 +50,22 @@ subscribes to `sessionIndex` plus three paths per session (`meta`, `presence`,
 ### VM page: `/vm/[sid]`
 [`src/app/vm/[sid]/page.tsx`](../src/app/vm/%5Bsid%5D/page.tsx)
 
-Stands in for the headless VM. Nothing on it is clickable:
+Stands in for the headless VM. It doesn't show the paysheet at all (nobody
+looks at it in a real VM) and nothing on it is clickable. It shows the relay:
 
-- **Read-only paysheet** ([`PaySheetMirror.tsx`](../src/components/PaySheetMirror.tsx)):
-  what the SDK currently shows.
-- **Activity timeline** ([`VmActivity.tsx`](../src/components/VmActivity.tsx)):
-  one card per device request, built from the bridge's `VmEvent`s.
+- **Relay steps** ([`VmActivity.tsx`](../src/components/VmActivity.tsx)): one
+  card per device request, built from the bridge's `VmEvent`s. Each step is
+  labeled with its direction:
+
+  | Step | Direction |
+  |---|---|
+  | `action set_shipping_address` (with a payload summary) | Device → VM |
+  | `callback_pending onShippingAddressChange` | VM → Device |
+  | SDK fired merchant callback `onShippingAddressChange` | In the VM |
+  | Merchant resolved / rejected (with what changed, or the reason) | In the VM |
+  | `callback_result resolved` plus the updated snapshot | VM → Device |
+
+  Each step shows how long after the action arrived it happened.
 - **Merchant simulator**: a "Hold responses" switch that stands in for the
   merchant's backend, so a demo can show a callback in flight.
 
@@ -63,9 +73,19 @@ Stands in for the headless VM. Nothing on it is clickable:
 [`src/app/pay/[code]/page.tsx`](../src/app/pay/%5Bcode%5D/page.tsx),
 [`src/components/PaySheetView.tsx`](../src/components/PaySheetView.tsx)
 
-The interactive paysheet the user sees. It renders the VM's latest snapshot,
-and every interaction becomes a request through `DeviceClient`. It is disabled
-while a request is in flight or the VM is offline.
+The interactive paysheet the user sees, laid out like a familiar wallet
+checkout: a cart-total pill that expands into the order summary, "Ship to" with
+a Change option, a shipping method list, a "Pay with" row, one full-width Pay
+button, and "Cancel and return to merchant". It deliberately uses its own
+"PaySheet" demo brand, not a real wallet's name or logo, since it runs on a
+public URL.
+
+It renders the VM's latest snapshot, and every interaction becomes a request
+through `DeviceClient`. While a callback runs, an overlay names it ("Checking
+your address with the merchant…"). Merchant rejections appear next to the
+section they concern, in shopper language (`COUNTRY_ERROR` becomes "Bean There
+Coffee doesn't ship to this country"). It is disabled while a request is in
+flight or the VM is offline.
 
 ## Shared libraries
 
