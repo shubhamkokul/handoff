@@ -1,0 +1,59 @@
+{
+  "rules": {
+    // Admin SDK only. Clients never see share codes.
+    "shareCodes": { ".read": false, ".write": false },
+
+    // Session list for the operator console (read-only). Sessions can't see it.
+    "sessionIndex": {
+      ".read": "auth != null && auth.token.role === 'operator'",
+      ".write": false,
+      ".indexOn": ["createdAt"]
+    },
+
+    "sessions": {
+      "$sid": {
+        // Only tokens minted for this session, and only until it expires.
+        // The operator console can watch every session but never write.
+        ".read": "auth != null && ((auth.token.sid === $sid && data.child('meta/expiresAt').val() > now) || auth.token.role === 'operator')",
+
+        // Written by the backend (admin) at creation; VM may update status.
+        "meta": {
+          ".write": "auth != null && auth.token.sid === $sid && auth.token.role === 'vm' && data.exists()"
+        },
+
+        // VM is the source of truth for paysheet state.
+        "state": {
+          ".write": "auth != null && auth.token.sid === $sid && auth.token.role === 'vm'"
+        },
+
+        // device -> VM queue. Device appends; VM deletes after consuming.
+        "toVm": {
+          "$msgId": {
+            ".write": "auth != null && auth.token.sid === $sid && ((auth.token.role === 'device' && !data.exists() && newData.exists()) || (auth.token.role === 'vm' && !newData.exists()))",
+            ".validate": "!newData.exists() || (newData.hasChildren(['type', 'id']) && newData.child('id').isString())"
+          }
+        },
+
+        // VM -> device queue. VM appends; device deletes after consuming.
+        "toDevice": {
+          "$msgId": {
+            ".write": "auth != null && auth.token.sid === $sid && ((auth.token.role === 'vm' && !data.exists() && newData.exists()) || (auth.token.role === 'device' && !newData.exists()))",
+            ".validate": "!newData.exists() || newData.hasChildren(['type'])"
+          }
+        },
+
+        // Tab id of the VM currently driving the SDK (one owner at a time).
+        "vmLease": {
+          ".write": "auth != null && auth.token.sid === $sid && auth.token.role === 'vm'"
+        },
+
+        // Each side can only set its own presence flag.
+        "presence": {
+          "$role": {
+            ".write": "auth != null && auth.token.sid === $sid && auth.token.role === $role"
+          }
+        }
+      }
+    }
+  }
+}

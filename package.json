@@ -3,19 +3,34 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "concurrently -k -n fb,next -c yellow,cyan \"npm:emulators\" \"npm:next\"",
+    "next": "node --env-file=.env.emulators node_modules/next/dist/bin/next dev -H 0.0.0.0",
+    "emulators": "firebase emulators:start --project demo-paysheet",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "e2e": "tsx --tsconfig scripts/tsconfig.json --env-file=.env.emulators scripts/e2e.ts",
+    "dev:live": "node --env-file=.env.live node_modules/next/dist/bin/next dev -H 0.0.0.0",
+    "e2e:live": "E2E_TARGET=live tsx --tsconfig scripts/tsconfig.json --env-file=.env.live scripts/e2e.ts",
+    "rules:deploy": "node --env-file=.env.live -e \"require('node:child_process').execSync('firebase deploy --only database --project ' + process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID, { stdio: 'inherit' })\"",
+    "cleanup": "tsx --env-file=.env.emulators scripts/cleanup.ts",
+    "cleanup:live": "tsx --env-file=.env.live scripts/cleanup.ts"
   },
   "dependencies": {
+    "firebase": "^13.1.0",
+    "firebase-admin": "^14.5.0",
+    "next": "15.5.28",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "next": "15.5.28"
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
-    "typescript": "^5",
     "@types/node": "^20",
     "@types/react": "^19",
-    "@types/react-dom": "^19"
+    "@types/react-dom": "^19",
+    "concurrently": "^10.0.6",
+    "firebase-tools": "^15.34.1",
+    "tsx": "^4.23.15",
+    "typescript": "^5"
   }
 }
