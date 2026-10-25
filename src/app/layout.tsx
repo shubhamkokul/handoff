@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PaySheet Relay",
-  description: "Mirror a headless VM paysheet to the user's device over Firebase RTDB",
+  title: "Handoff",
+  description: "Hand a headless VM checkout to a real person: device actions trigger the SDK's merchant callbacks in the VM, results stream back.",
 };
 
 export default function RootLayout({

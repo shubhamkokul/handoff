@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
   const code = randomBytes(12).toString("base64url");
   const now = Date.now();
 
-  const n = (await adminDb.ref("counters/session").transaction((c: number | null) => (c ?? 1000) + 1)).snapshot.val();
+  const n = (await adminDb().ref("counters/session").transaction((c: number | null) => (c ?? 1000) + 1)).snapshot.val();
   const scenario = SCENARIOS[n % SCENARIOS.length];
   const label = `#${n} · ${scenario.merchant}`;
 
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   // new session and resuming an old one are the same code path.
   const state: StateSnapshot = { seq: 0, paysheet: createInitialState(scenario.merchant, "USD", scenario.items) };
 
-  await adminDb.ref().update({
+  await adminDb().ref().update({
     [`sessions/${sid}/meta`]: meta,
     [`sessions/${sid}/state`]: state,
     [`shareCodes/${code}`]: { sid, expiresAt: meta.expiresAt },

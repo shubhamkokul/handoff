@@ -1,0 +1,16 @@
+# Public phase: route ${HANDOFF_HOST} through the existing Traefik
+# (fructus project) with a Let's Encrypt certificate. Enable by setting
+# COMPOSE_FILE=docker-compose.yml:docker-compose.public.yml in .env.
+services:
+  handoff:
+    networks: [default, fructus_fructus]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.handoff.rule=Host(`${HANDOFF_HOST}`)"
+      - "traefik.http.routers.handoff.tls.certresolver=letsencrypt"
+      - "traefik.http.services.handoff.loadbalancer.server.port=3000"
+      - "traefik.docker.network=fructus_fructus"
+
+networks:
+  fructus_fructus:
+    external: true

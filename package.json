@@ -1,11 +1,11 @@
 {
-  "name": "paysheet-relay",
+  "name": "handoff",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "concurrently -k -n fb,next -c yellow,cyan \"npm:emulators\" \"npm:next\"",
     "next": "node --env-file=.env.emulators node_modules/next/dist/bin/next dev -H 0.0.0.0",
-    "emulators": "firebase emulators:start --project demo-paysheet",
+    "emulators": "firebase emulators:start --project demo-handoff",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",

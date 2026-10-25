@@ -13,13 +13,15 @@ export interface IndexEntry {
 }
 
 export async function getIndexEntry(sid: string): Promise<IndexEntry | null> {
-  return (await adminDb.ref(`sessionIndex/${sid}`).get()).val();
+  return (await adminDb().ref(`sessionIndex/${sid}`).get()).val();
 }
 
 export function shareUrlFor(origin: string, code: string) {
   return `${origin}/pay/${code}`;
 }
 
+// Behind a proxy the request URL is the container's own address, so in
+// production share links come from PUBLIC_BASE_URL.
 export function originOf(req: Request & { nextUrl?: URL }) {
-  return req.headers.get("origin") ?? req.nextUrl?.origin ?? new URL(req.url).origin;
+  return process.env.PUBLIC_BASE_URL ?? req.headers.get("origin") ?? req.nextUrl?.origin ?? new URL(req.url).origin;
 }

@@ -32,8 +32,8 @@ const LIVE = process.env.E2E_TARGET === "live";
 const config = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? "demo-key",
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? "demo-paysheet",
-  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL ?? "https://demo-paysheet-default-rtdb.firebaseio.com",
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? "demo-handoff",
+  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL ?? "https://demo-handoff-default-rtdb.firebaseio.com",
 };
 const SF: Address = { line1: "1 Market St", city: "SF", state: "CA", postalCode: "94105", countryCode: "US" };
 const AUSTIN: Address = { line1: "500 Congress Ave", city: "Austin", state: "TX", postalCode: "78701", countryCode: "US" };

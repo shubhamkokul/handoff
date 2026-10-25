@@ -1,12 +1,19 @@
-# PaySheet Relay
+# Handoff
 
-Mirror a checkout paysheet running in a headless VM onto the user's own device.
+Live at **https://handoff.solutionbyhour.com**
+
+Hand a headless checkout to a real person. An agent's checkout paysheet runs in
+a VM the user can't reach; Handoff mirrors it onto the user's own device.
 The SDK (and its callbacks) stay in the VM; the device sends semantic actions,
 the VM fires the real callbacks, and results + state stream back.
 
 ```
 Device UI (/pay/[code])  ⇄  Firebase RTDB sessions/{sid}  ⇄  VM paysheet + SDK (/vm)
 ```
+
+**How it works:** see [`architecture/`](architecture/README.md): components,
+protocol, data model and security, session lifecycle, deployment, and testing,
+with diagrams.
 
 ## Run
 
@@ -55,6 +62,7 @@ stands down, and any callback it had in flight fails on the device with
 | `src/components/VmActivity.tsx` | VM activity timeline, built from the bridge's `VmEvent`s. |
 | `src/components/PaySheetMirror.tsx` | The VM's read-only paysheet. |
 | `src/lib/console-feed.ts` | Live session list for the console (operator token, read-only). |
+| `deploy/` | Dockerfile, compose files, and `deploy.sh` for the VPS. |
 | `database.rules.json` | Per-session, per-role access. Device can't write state; nobody reads share codes; the operator token is read-only. |
 
 RTDB layout:

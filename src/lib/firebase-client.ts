@@ -22,7 +22,7 @@ const config = {
 // One named Firebase app per role, with in-memory auth. Without this, a VM tab
 // and a device tab in the same browser would share (and clobber) one auth session.
 export async function connectAs(role: Role | "operator", customToken: string): Promise<Database> {
-  const name = `paysheet-${role}`;
+  const name = `handoff-${role}`;
   let app: FirebaseApp | undefined = getApps().find((a) => a.name === name);
   const fresh = !app;
   app ??= initializeApp(config, name);

@@ -9,15 +9,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "invalid_code" }, { status: 400 });
   }
 
-  const snap = await adminDb.ref(`shareCodes/${code}`).get();
+  const snap = await adminDb().ref(`shareCodes/${code}`).get();
   const entry = snap.val() as { sid: string; expiresAt: number } | null;
   if (!entry || entry.expiresAt < Date.now()) {
     return NextResponse.json({ error: "expired_or_unknown" }, { status: 404 });
   }
 
-  const metaRef = adminDb.ref(`sessions/${entry.sid}/meta/status`);
+  const metaRef = adminDb().ref(`sessions/${entry.sid}/meta/status`);
   await metaRef.transaction((s) => (s === "waiting" ? "active" : s));
 
-  const deviceToken = await adminAuth.createCustomToken(`device:${entry.sid}`, { sid: entry.sid, role: "device" });
+  const deviceToken = await adminAuth().createCustomToken(`device:${entry.sid}`, { sid: entry.sid, role: "device" });
   return NextResponse.json({ sid: entry.sid, deviceToken, expiresAt: entry.expiresAt });
 }

@@ -53,7 +53,7 @@ export default function Console() {
   return (
     <main className="page">
       <div className="page-head">
-        <h1>PaySheet Relay</h1>
+        <h1>Handoff</h1>
         <p className="muted">
           Each launch boots a simulated VM paysheet with its own cart and its own device link. Hand links to different
           people to run transactions in parallel; reopen any session to resume it.
